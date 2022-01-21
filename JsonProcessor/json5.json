@@ -1,0 +1,20 @@
+{
+  "user": {
+    "name": "John",
+    "value": 10,
+    "array": [1,2,3,4]
+  },
+  "owner": {
+    "name": "Jeff",
+    "value": 11,
+    "array": [
+      {
+        "name": "Me"
+      },
+      {
+        "name": "Mia"
+      }
+    ]
+  },
+  "bool": true
+}
