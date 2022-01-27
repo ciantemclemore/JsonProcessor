@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JsonProcessor
+namespace JParser
 {
-    internal class JsonArray
+    public class JsonArray
     {
         public List<object?> Elements { get; set; } = new List<object?>();
 

@@ -9,6 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JsonParser\JsonParser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="json1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JsonProcessor
+namespace JParser
 {
-    internal class JsonObject
+    public class JsonObject
     {
         public Dictionary<string, object?> Members { get; set; } = new Dictionary<string, object?>();
 

@@ -1,265 +1,144 @@
-﻿// See https://aka.ms/new-console-template for more information
-using JsonProcessor;
-using System;
-using System.Globalization;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
+using System.Linq;
+using System.Windows.Forms;
+using JParser;
 
-
-string[] files = Directory.GetFiles(Directory.GetCurrentDirectory(), "json*.json");
-int position;
-
-//foreach (var file in files) 
-//{
-//}
-position = 0;
-string jsonString = File.ReadAllText(files[0]);
-string? obj = RemoveAllWhiteSpace(jsonString);
-object? newObj = ParseValue(obj);
-Console.WriteLine(newObj);
-
-
-string RemoveAllWhiteSpace(string json)
+namespace JsonProcessor
 {
-    StringBuilder stringBuilder = new StringBuilder();
-    bool isInsideString = false;
-
-    for (int i = 0; i < json.Length; i++)
+    class Program
     {
-        if (!char.IsWhiteSpace(json[i]))
+        [STAThread]
+        static void Main(string[] args)
         {
-            stringBuilder.Append(json[i]);
+            // Create a new JsonStorage for tracking all our parsed jsons
+            JsonStorage jsonStorage = new JsonStorage();
+            
+            bool runProg = true;
 
-            if (json[i] == '"' && (i == 0 || (i > 0 && json[i - 1] != '\\')))
+            while (runProg)
             {
-                isInsideString = !isInsideString;
+                int userSelection = DisplayMenu();
+
+                switch (userSelection)
+                {
+                    case 1:
+                        (string, string)? result = SelectFile();
+
+                        if (result != null) 
+                        {
+                            string cleanJson = JsonExtension.RemoveAllWhiteSpace(result.Value.Item2);
+                            
+                            JsonParser jsonParser = new JsonParser();
+                            
+                            object? parsedJson = jsonParser.Parse(cleanJson);
+
+                            if (parsedJson != null) 
+                            {
+                                Console.WriteLine();
+                                Console.WriteLine("Json Parsed and Stored successfully");
+                                Console.WriteLine();
+                                jsonStorage.JsonStore.Add((result.Value.Item1, parsedJson));
+                            }
+                        }
+                        break;
+                    case 2:
+                        object? jsonConent = SelectJsonContent(jsonStorage);
+                        DisplayContent(jsonConent);
+                        break;
+                    case 3:
+                        
+                        break;
+                    case 4:
+                        
+                        break;
+                    case 5:
+                        runProg = false;
+                        break;
+                    default:
+                        Console.WriteLine("Invalid selection. Try Again:");
+                        break;
+                }
+
+                Console.WriteLine();
             }
         }
-        else if (char.IsWhiteSpace(json[i]) && isInsideString)
+
+        private static (string, string)? SelectFile() 
         {
-            stringBuilder.Append(json[i]);
+            using (OpenFileDialog openFileDialog = new OpenFileDialog()) 
+            {
+                openFileDialog.InitialDirectory = "C:\\";
+                openFileDialog.Filter = "json files (*.json)|*.json|All files (*.*)|*.*";
+                openFileDialog.FilterIndex = 0;
+                openFileDialog.RestoreDirectory = true;
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK) 
+                {
+                    string fileName = openFileDialog.FileName;
+                    var fileStrream = openFileDialog.OpenFile();
+                    string content = string.Empty;
+
+                    using (StreamReader sr = new StreamReader(fileStrream)) 
+                    {
+                        content = sr.ReadToEnd();    
+                    }
+
+                    return (fileName,content);
+                }
+
+                return null;
+            }
+        }
+
+        private static int DisplayMenu()
+        {
+            Console.WriteLine("1. Select json to parse");
+            Console.WriteLine("2. Display a parsed json");
+            Console.WriteLine("3. Add to an existing json");
+            Console.WriteLine("4. Query a json for a value");
+            Console.WriteLine("5. Exit");
+
+            int selectionValue;
+            bool isValid = Int32.TryParse(Console.ReadLine(), out selectionValue);
+
+            if (isValid)
+            {
+                return selectionValue;
+            }
+
+            //Just return an invalid selction to display menu again
+            Console.WriteLine();
+            return -1;
+        }
+
+        private static object? SelectJsonContent(JsonStorage jsonStorage) 
+        {
+            //This will provide space between the menu
+            Console.WriteLine();
+
+            int userSelection; 
+
+            for (int i = 0; i < jsonStorage.JsonStore.Count; i++) 
+            {
+                Console.WriteLine($"{i+1}. {jsonStorage.JsonStore[i].Item1}");
+            }
+
+            Int32.TryParse(Console.ReadLine(), out userSelection);
+
+            return jsonStorage.JsonStore[userSelection - 1].Item2;
+        }
+
+        private static void DisplayContent(object? content) 
+        {
+            //This will provide space between the menu
+            Console.WriteLine();
+
+            if (content != null) 
+            {
+                Console.WriteLine(JsonExtension.Beautify(content.ToString()));
+            }
         }
     }
-
-    return stringBuilder.ToString();
-}
-
-JsonArray ParseJsonArray(string json, int level = 0)
-{
-
-    //starts us at the quote and not the curly brace
-    position++;
-
-    JsonArray jsonArray = new JsonArray() { Level = level };
-
-    for (; position < json.Length; position++)
-    {
-        if (json[position] == ']')
-        {
-            return jsonArray;
-        }
-        else if (json[position] == ',')
-        {
-            continue;
-        }
-        else
-        {
-            jsonArray.Elements.Add(ParseValue(json, level));
-        }
-    }
-    throw new Exception("Invalid Json");
-}
-
-JsonObject ParseJsonObject(string json, int level = 0)
-{
-    //starts us at the quote and not the curly brace
-    position++;
-
-    JsonObject jsonObject = new JsonObject() { Level = level };
-
-    for (; position < json.Length; position++)
-    {
-        if (json[position] == '"')
-        {
-            //create key
-            string key = ParseString(json);
-
-            //skip the colon and go to value
-            position += 2;
-
-            jsonObject.Members.Add(key, ParseValue(json, level));
-
-        }
-        else if (json[position] == '}')
-        {
-            return jsonObject;
-        }
-        else if (json[position] == ',')
-        {
-            continue;
-        }
-        else
-        {
-            throw new Exception("Invalid Json");
-        }
-    }
-    throw new Exception("Invalid Json");
-}
-
-
-object? ParseValue(string value, int level = 0)
-{
-    if (value[position] == 't')
-    {
-        return ParseTrue(value);
-    }
-    else if (value[position] == 'f')
-    {
-        return ParseFalse(value); ;
-    }
-    else if (value[position] == 'n')
-    {
-        return ParseNull(value);
-    }
-    else if (char.IsDigit(value[position]) || value[position] == '-')
-    {
-        return ParseNumber(value);
-    }
-    else if (value[position] == '"')
-    {
-        return ParseString(value);
-    }
-    else if (value[position] == '[')
-    {
-        return ParseJsonArray(value, level + 1);
-    }
-    else if (value[position] == '{')
-    {
-        return ParseJsonObject(value, level + 1);
-    }
-    else
-    {
-        return null;
-    }
-}
-
-string ParseString(string value)
-{
-    //go pass the original quote 
-    position++;
-
-    int startPosition = position;
-
-    //go until the pointer reaches the end of the string
-    for (int i = position; i < value.Length; i++)
-    {
-        if (value[i] == '"' && value[i - 1] != '\\')
-        {
-            break;
-        }
-        else
-        {
-            position++;
-        }
-    }
-
-    return Regex.Unescape(value.Substring(startPosition, (position) - startPosition));
-}
-
-object? ParseNumber(string value)
-{
-    int startPosition = position;
-
-    if (value[position] == '-')
-    {
-        position += 1;
-    }
-
-    //checking for integers
-    ParseDigits(value);
-
-    //check for fractions
-    if (position < value.Length && value[position] == '.')
-    {
-        position += 1;
-        ParseDigits(value);
-    }
-
-    //check for exponenets
-    if (position < value.Length && (value[position] == 'e' || value[position] == 'E'))
-    {
-        position += 1;
-
-        if (value[position] == '+' || value[position] == '-')
-        {
-            position += 1;
-            ParseDigits(value);
-        }
-    }
-
-    decimal number = decimal.Parse(value.Substring(startPosition, position - startPosition), NumberStyles.Float, CultureInfo.CreateSpecificCulture("en-US"));
-
-    //puts us back on the last digit since numbers don't have quotes in them
-    position--;
-
-    return number;
-}
-
-
-void ParseDigits(string value)
-{
-    for (int i = position; i < value.Length; i++)
-    {
-        if (char.IsDigit(value[i]))
-        {
-            position++;
-        }
-        else
-        {
-            break;
-        }
-    }
-}
-
-bool ParseTrue(string json)
-{
-    string trueString = json.Substring(position, 4);
-
-    if (trueString != "true")
-    {
-        throw new Exception("Invalid Json");
-    }
-
-    position += 3;
-
-    return true;
-}
-
-bool ParseFalse(string json)
-{
-    string falseString = json.Substring(position, 5);
-
-    if (falseString != "false")
-    {
-        throw new Exception("Invalid Json");
-    }
-
-    position += 4;
-
-    return false;
-}
-
-object? ParseNull(string json)
-{
-    string nullString = json.Substring(position, 4);
-
-    if (nullString != "null")
-    {
-        throw new Exception("Invalid Json");
-    }
-
-    position += 3;
-
-    return null;
 }
