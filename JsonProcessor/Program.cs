@@ -4,17 +4,17 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using JParser;
+using FileHelper;
 
 namespace JsonProcessor
 {
     class Program
     {
+        private static readonly JsonStorage JsonStorage = new JsonStorage();
+
         [STAThread]
         static void Main(string[] args)
-        {
-            // Create a new JsonStorage for tracking all our parsed jsons
-            JsonStorage jsonStorage = new JsonStorage();
-            
+        {            
             bool runProg = true;
 
             while (runProg)
@@ -24,34 +24,20 @@ namespace JsonProcessor
                 switch (userSelection)
                 {
                     case 1:
-                        (string, string)? result = SelectFile();
-
-                        if (result != null) 
-                        {
-                            string cleanJson = JsonExtension.RemoveAllWhiteSpace(result.Value.Item2);
-                            
-                            JsonParser jsonParser = new JsonParser();
-                            
-                            object? parsedJson = jsonParser.Parse(cleanJson);
-
-                            if (parsedJson != null) 
-                            {
-                                Console.WriteLine();
-                                Console.WriteLine("Json Parsed and Stored successfully");
-                                Console.WriteLine();
-                                jsonStorage.JsonStore.Add((result.Value.Item1, parsedJson));
-                            }
-                        }
+                        UploadJson();
                         break;
                     case 2:
-                        object? jsonConent = SelectJsonContent(jsonStorage);
-                        DisplayContent(jsonConent);
+                        object? jsonConent = SelectJsonContent();
+                        if (jsonConent != null) 
+                        {
+                            DisplayContent(jsonConent);
+                        }
                         break;
                     case 3:
-                        
+                        UpdateJson();
                         break;
                     case 4:
-                        
+                        QueryAJson();
                         break;
                     case 5:
                         runProg = false;
@@ -62,33 +48,6 @@ namespace JsonProcessor
                 }
 
                 Console.WriteLine();
-            }
-        }
-
-        private static (string, string)? SelectFile() 
-        {
-            using (OpenFileDialog openFileDialog = new OpenFileDialog()) 
-            {
-                openFileDialog.InitialDirectory = "C:\\";
-                openFileDialog.Filter = "json files (*.json)|*.json|All files (*.*)|*.*";
-                openFileDialog.FilterIndex = 0;
-                openFileDialog.RestoreDirectory = true;
-
-                if (openFileDialog.ShowDialog() == DialogResult.OK) 
-                {
-                    string fileName = openFileDialog.FileName;
-                    var fileStrream = openFileDialog.OpenFile();
-                    string content = string.Empty;
-
-                    using (StreamReader sr = new StreamReader(fileStrream)) 
-                    {
-                        content = sr.ReadToEnd();    
-                    }
-
-                    return (fileName,content);
-                }
-
-                return null;
             }
         }
 
@@ -113,31 +72,103 @@ namespace JsonProcessor
             return -1;
         }
 
-        private static object? SelectJsonContent(JsonStorage jsonStorage) 
+        private static void UploadJson() 
+        {
+            (string, string)? result = JFile.SelectFile();
+
+            if (result != null)
+            {
+                JsonParser jsonParser = new JsonParser();
+                object? parsedJson = jsonParser.Parse(result.Value.Item2);
+
+                if (parsedJson != null)
+                {
+                    Console.WriteLine();
+                    Console.WriteLine("Json Parsed and Stored successfully");
+                    JsonStorage.JsonStore.Add((result.Value.Item1, parsedJson));
+                }
+            }
+        }
+
+        private static object? SelectJsonContent() 
         {
             //This will provide space between the menu
             Console.WriteLine();
 
             int userSelection; 
 
-            for (int i = 0; i < jsonStorage.JsonStore.Count; i++) 
+            for (int i = 0; i < JsonStorage.JsonStore.Count; i++) 
             {
-                Console.WriteLine($"{i+1}. {jsonStorage.JsonStore[i].Item1}");
+                Console.WriteLine($"{i+1}. {JsonStorage.JsonStore[i].Item1}");
             }
 
             Int32.TryParse(Console.ReadLine(), out userSelection);
 
-            return jsonStorage.JsonStore[userSelection - 1].Item2;
+            return JsonStorage.JsonStore[userSelection - 1].Item2;
         }
 
-        private static void DisplayContent(object? content) 
+        private static void UpdateJson()
+        {
+            Console.WriteLine("Select a json to update: ");
+            
+            // first, allow the user to select the json they would like to update
+            object? jsonContent = SelectJsonContent();
+
+            if (jsonContent != null) 
+            {
+                
+            }
+        }
+
+        private static void QueryAJson()
+        {
+            while (true)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Select a json to query: ");
+
+                //get the selected json the user wants to query
+                object? jsonContent = SelectJsonContent();
+
+                //disply the json content
+                DisplayContent(new List<object>() { jsonContent });
+
+                //allow the user to 'query' the object by 'key' and return a value
+                Console.WriteLine("Enter 'query' to get value: (enter 'exit' to return)");
+                string query = Console.ReadLine();
+
+                if (query == "exit")
+                {
+                    break;
+                }
+
+                var queryResults = JHelper.Search(jsonContent, query);
+                DisplayContent(queryResults);
+            }
+        }
+
+        private static void DisplayContent(object content) 
         {
             //This will provide space between the menu
             Console.WriteLine();
 
             if (content != null) 
+            {  
+                Console.WriteLine(JHelper.Beautify(content.ToString()));   
+            }
+        }
+
+        private static void DisplayContent(IEnumerable<object> contents)
+        {
+            //This will provide space between the menu
+            Console.WriteLine();
+
+            if (contents != null)
             {
-                Console.WriteLine(JsonExtension.Beautify(content.ToString()));
+                foreach (object item in contents)
+                {
+                    Console.WriteLine(JHelper.Beautify(item.ToString()));
+                }
             }
         }
     }

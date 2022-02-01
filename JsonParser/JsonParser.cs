@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace JParser
@@ -7,14 +8,18 @@ namespace JParser
     public class JsonParser
     {
         private int position = 0;
-        private bool isFileTrimmed = false;
-        private string cleansedJson = string.Empty;
 
         public JsonParser() 
         {
         }
 
-        public object? Parse(string value, int level = 0)
+        public object? Parse(string value) 
+        {
+            string cleanJson = JHelper.RemoveAllWhiteSpace(value);
+            return Parse(cleanJson, 0);
+        }
+
+        private object? Parse(string value, int level = 0)
         {
             if (value[position] == 't')
             {

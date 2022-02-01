@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FileHelper\FileHelper.csproj" />
     <ProjectReference Include="..\JsonParser\JsonParser.csproj" />
   </ItemGroup>
 
