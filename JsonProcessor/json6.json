@@ -1,6 +1,8 @@
 {
   "user": {
-    "name": "John Smith, he is at home",
-    "id": 10
+    "name": "John",
+    "value": 10,
+    "array": [ 1, 2, 3, 4 ],
+    "IsNew": true
   }
 }

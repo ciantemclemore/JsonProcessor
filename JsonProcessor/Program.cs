@@ -1,23 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
+﻿using FileHelper;
 using JParser;
-using FileHelper;
+using System;
+using System.Collections.Generic;
 
 namespace JsonProcessor
 {
-    class Program
+    internal class Program
     {
-        private static readonly JsonStorage JsonStorage = new JsonStorage();
+        private static List<(string, object?)> JsonStorage = new List<(string, object?)>();
 
         [STAThread]
-        static void Main(string[] args)
-        {            
-            bool runProg = true;
+        private static void Main(string[] args)
+        {
+            bool runProgram = true;
 
-            while (runProg)
+            while (runProgram)
             {
                 int userSelection = DisplayMenu();
 
@@ -27,11 +24,7 @@ namespace JsonProcessor
                         UploadJson();
                         break;
                     case 2:
-                        object? jsonConent = SelectJsonContent();
-                        if (jsonConent != null) 
-                        {
-                            DisplayContent(jsonConent);
-                        }
+                        DisplayJson();
                         break;
                     case 3:
                         UpdateJson();
@@ -40,7 +33,7 @@ namespace JsonProcessor
                         QueryAJson();
                         break;
                     case 5:
-                        runProg = false;
+                        runProgram = false;
                         break;
                     default:
                         Console.WriteLine("Invalid selection. Try Again:");
@@ -51,28 +44,35 @@ namespace JsonProcessor
             }
         }
 
+        /// <summary>
+        /// Displays the main window options for the program
+        /// </summary>
+        /// <returns></returns>
         private static int DisplayMenu()
         {
-            Console.WriteLine("1. Select json to parse");
+            Console.WriteLine("1. Upload a json for parsing");
             Console.WriteLine("2. Display a parsed json");
             Console.WriteLine("3. Add to an existing json");
             Console.WriteLine("4. Query a json for a value");
             Console.WriteLine("5. Exit");
 
-            int selectionValue;
-            bool isValid = Int32.TryParse(Console.ReadLine(), out selectionValue);
+            bool isValid = int.TryParse(Console.ReadLine(), out int selectionValue);
 
             if (isValid)
             {
                 return selectionValue;
             }
 
-            //Just return an invalid selction to display menu again
             Console.WriteLine();
+
+            //Just return an invalid selction to display menu again
             return -1;
         }
 
-        private static void UploadJson() 
+        /// <summary>
+        /// Allows the user to select a json file and have it parsed and converted into a c# object
+        /// </summary>
+        private static void UploadJson()
         {
             (string, string)? result = JFile.SelectFile();
 
@@ -85,41 +85,99 @@ namespace JsonProcessor
                 {
                     Console.WriteLine();
                     Console.WriteLine("Json Parsed and Stored successfully");
-                    JsonStorage.JsonStore.Add((result.Value.Item1, parsedJson));
+                    JsonStorage.Add((result.Value.Item1, parsedJson));
                 }
             }
         }
 
-        private static object? SelectJsonContent() 
+        /// <summary>
+        /// Displays a parsed json in a user friendly format
+        /// </summary>
+        private static void DisplayJson()
         {
-            //This will provide space between the menu
-            Console.WriteLine();
+            Console.WriteLine("Select a json to display: ");
 
-            int userSelection; 
+            (string, object?) selectedJson = SelectJson();
 
-            for (int i = 0; i < JsonStorage.JsonStore.Count; i++) 
+            if (selectedJson.Item2 != null)
             {
-                Console.WriteLine($"{i+1}. {JsonStorage.JsonStore[i].Item1}");
+                DisplayContent(selectedJson.Item2);
             }
-
-            Int32.TryParse(Console.ReadLine(), out userSelection);
-
-            return JsonStorage.JsonStore[userSelection - 1].Item2;
         }
 
+        /// <summary>
+        /// Displays all of the parsed json's and allows a user to select one
+        /// </summary>
+        /// <returns>A ValueTuple(string, object?). The first item is the filename of the json and the second item is the parsed json.</returns>
+        private static (string, object?) SelectJson()
+        {
+            Console.WriteLine();
+
+
+            // Display all available json's stored in the JsonStorage
+            for (int i = 0; i < JsonStorage.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {JsonStorage[i].Item1}");
+            }
+
+            int.TryParse(Console.ReadLine(), out int userSelection);
+
+            return (JsonStorage[userSelection - 1].Item1, JsonStorage[userSelection - 1].Item2);
+        }
+
+        /// <summary>
+        /// Allows the user to select a parsed json and add additional json to it. This helps create more complex objects
+        /// </summary>
         private static void UpdateJson()
         {
             Console.WriteLine("Select a json to update: ");
-            
-            // first, allow the user to select the json they would like to update
-            object? jsonContent = SelectJsonContent();
 
-            if (jsonContent != null) 
+            // first, allow the user to select the json they would like to update
+            (string, object?) jsonContent = SelectJson();
+
+            if (jsonContent.Item2 != null)
             {
-                
+                DisplayContent(jsonContent);
+                Console.WriteLine();
+                Console.WriteLine("Enter 'key' you would like to add json to: (enter 'exit' to return) ");
+                string key = Console.ReadLine();
+
+                if (key == "exit")
+                {
+                    return;
+                }
+
+                Console.WriteLine("Select new json: ");
+                (string, string)? result = JFile.SelectFile();
+
+                JsonParser jsonParser = new JsonParser();
+                object? parsedJson = jsonParser.Parse(result.Value.Item2);
+
+                if (parsedJson != null)
+                {
+                    object? updatedJson = JHelper.AddToJson(jsonContent.Item2, parsedJson, key);
+
+                    if (updatedJson == null)
+                    {
+                        Console.WriteLine("Must provide valid json object: { 'key': 'value' }");
+                    }
+                    else
+                    {
+                        int index = JsonStorage.FindIndex(kvp => kvp.Item1 == jsonContent.Item1);
+
+                        if (index != -1)
+                        {
+                            JsonStorage[index] = (jsonContent.Item1, updatedJson);
+                            DisplayContent(updatedJson);
+                        }
+                    }
+                }
             }
         }
 
+        /// <summary>
+        /// Allows the user to query an uploaded json by a 'key' within the json structure and return a value.
+        /// </summary>
         private static void QueryAJson()
         {
             while (true)
@@ -128,7 +186,7 @@ namespace JsonProcessor
                 Console.WriteLine("Select a json to query: ");
 
                 //get the selected json the user wants to query
-                object? jsonContent = SelectJsonContent();
+                object? jsonContent = SelectJson();
 
                 //disply the json content
                 DisplayContent(new List<object>() { jsonContent });
@@ -142,22 +200,30 @@ namespace JsonProcessor
                     break;
                 }
 
-                var queryResults = JHelper.Search(jsonContent, query);
+                IEnumerable<object>? queryResults = JHelper.Query(jsonContent, query);
                 DisplayContent(queryResults);
             }
         }
 
-        private static void DisplayContent(object content) 
+        /// <summary>
+        /// Displays a single json content in a user friendly manner.
+        /// </summary>
+        /// <param name="content"></param>
+        private static void DisplayContent(object content)
         {
             //This will provide space between the menu
             Console.WriteLine();
 
-            if (content != null) 
-            {  
-                Console.WriteLine(JHelper.Beautify(content.ToString()));   
+            if (content != null)
+            {
+                Console.WriteLine(JHelper.Beautify(content.ToString()));
             }
         }
 
+        /// <summary>
+        /// Displays multiple json contents in a user friendly manner.
+        /// </summary>
+        /// <param name="contents"></param>
         private static void DisplayContent(IEnumerable<object> contents)
         {
             //This will provide space between the menu

@@ -18,7 +18,14 @@ namespace JParser
 
                 if (element is string)
                 {
-                    output += $"\"{element}\"";
+                    if (element == "null")
+                    {
+                        output += $"null";
+                    }
+                    else 
+                    {
+                        output += $"\"{element}\"";
+                    }
                 }
                 else if (element is bool)
                 {

@@ -75,7 +75,59 @@ namespace JParser
             return stringBuilder.ToString();
         }
 
-        public static IEnumerable<object> Search(object json, string query) 
+        public static object? AddToJson(object originalJson, object newJson, string query) 
+        {
+            //we need to be able to find the key and values of the new json to add to original
+            //we need to be able to add inside the tree of the gameobject
+            if (originalJson is JsonObject originalJsonObject && newJson is JsonObject newJsonObject) 
+            {
+                if (query == "root") 
+                {
+                    foreach (var member in newJsonObject.Members) 
+                    {
+                        originalJsonObject.Members.Add(member.Key, member.Value);
+                    }
+                    
+                    return originalJsonObject;
+                }
+
+                Stack<JsonObject> stack = new Stack<JsonObject>();
+
+                stack.Push(originalJsonObject);
+
+                while (stack.Count > 0)
+                {
+                    JsonObject current = stack.Pop();
+
+                    if (current.Members != null && current.Members.Any())
+                    {
+                        foreach (var member in current.Members)
+                        {
+                            if (member.Key.Equals(query, StringComparison.CurrentCultureIgnoreCase) && member.Value is JsonObject memberJsonObject)
+                            {
+                                foreach (var newMember in newJsonObject.Members) 
+                                {
+                                    memberJsonObject.Members.Add(newMember.Key, newMember.Value);
+                                }
+
+                                break;
+                            }
+
+                            if (member.Value is JsonObject jsonObject)
+                            {
+                                stack.Push(jsonObject);
+                            }
+                        }
+                    }
+                }
+
+                return originalJson;
+            }
+
+            return null;
+        }
+
+        public static IEnumerable<object> Query(object json, string query) 
         {
             if (json is JsonObject jsonObject)
             {
@@ -108,13 +160,13 @@ namespace JParser
             return results;
         }
 
-        private static IEnumerable<object> Search(JsonObject root, string query) 
+        private static IEnumerable<object> Search(JsonObject obj, string query) 
         {
             List<object> results = new List<object>();
 
             Stack<JsonObject> stack = new Stack<JsonObject>();
 
-            stack.Push(root);
+            stack.Push(obj);
 
             while (stack.Count > 0) 
             {

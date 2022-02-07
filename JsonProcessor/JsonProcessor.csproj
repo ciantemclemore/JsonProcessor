@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FileHelper\FileHelper.csproj" />
+    <ProjectReference Include="..\JParser\JParser.csproj" />
     <ProjectReference Include="..\JsonParser\JsonParser.csproj" />
   </ItemGroup>
 

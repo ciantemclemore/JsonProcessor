@@ -19,7 +19,14 @@ namespace JParser
 
                 if (memberValue is string)
                 {
-                    output += $"\"{member.Key}\":\"{memberValue}\"";
+                    if (memberValue.Equals("null"))
+                    {
+                        output += $"\"{member.Key}\":null";
+                    }
+                    else
+                    {
+                        output += $"\"{member.Key}\":\"{memberValue}\"";
+                    }
                 }
                 else if (memberValue is bool) 
                 {

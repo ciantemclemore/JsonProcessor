@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Globalization;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace JParser
@@ -9,45 +8,45 @@ namespace JParser
     {
         private int position = 0;
 
-        public JsonParser() 
+        public JsonParser()
         {
         }
 
-        public object? Parse(string value) 
+        public object? Parse(string json)
         {
-            string cleanJson = JHelper.RemoveAllWhiteSpace(value);
+            string cleanJson = JHelper.RemoveAllWhiteSpace(json);
             return Parse(cleanJson, 0);
         }
 
-        private object? Parse(string value, int level = 0)
+        private object? Parse(string json, int level = 0)
         {
-            if (value[position] == 't')
+            if (json[position] == 't')
             {
-                return ParseTrue(value);
+                return ParseTrue(json);
             }
-            else if (value[position] == 'f')
+            else if (json[position] == 'f')
             {
-                return ParseFalse(value);
+                return ParseFalse(json);
             }
-            else if (value[position] == 'n')
+            else if (json[position] == 'n')
             {
-                return ParseNull(value);
+                return ParseNull(json);
             }
-            else if (char.IsDigit(value[position]) || value[position] == '-')
+            else if (char.IsDigit(json[position]) || json[position] == '-')
             {
-                return ParseNumber(value);
+                return ParseNumber(json);
             }
-            else if (value[position] == '"')
+            else if (json[position] == '"')
             {
-                return ParseString(value);
+                return ParseString(json);
             }
-            else if (value[position] == '[')
+            else if (json[position] == '[')
             {
-                return ParseJsonArray(value, level + 1);
+                return ParseJsonArray(json, level + 1);
             }
-            else if (value[position] == '{')
+            else if (json[position] == '{')
             {
-                return ParseJsonObject(value, level + 1);
+                return ParseJsonObject(json, level + 1);
             }
             else
             {
@@ -55,7 +54,7 @@ namespace JParser
             }
         }
 
-        string ParseString(string value)
+        private string ParseString(string json)
         {
             //go pass the original quote 
             position++;
@@ -63,9 +62,9 @@ namespace JParser
             int startPosition = position;
 
             //go until the pointer reaches the end of the string
-            for (int i = position; i < value.Length; i++)
+            for (int i = position; i < json.Length; i++)
             {
-                if (value[i] == '"' && value[i - 1] != '\\')
+                if (json[i] == '"' && json[i - 1] != '\\')
                 {
                     break;
                 }
@@ -75,41 +74,41 @@ namespace JParser
                 }
             }
 
-            return Regex.Unescape(value.Substring(startPosition, (position) - startPosition));
+            return Regex.Unescape(json.Substring(startPosition, (position) - startPosition));
         }
 
-        object? ParseNumber(string value)
+        private object? ParseNumber(string json)
         {
             int startPosition = position;
 
-            if (value[position] == '-')
+            if (json[position] == '-')
             {
                 position += 1;
             }
 
             //checking for integers
-            ParseDigits(value);
+            ParseDigits(json);
 
             //check for fractions
-            if (position < value.Length && value[position] == '.')
+            if (position < json.Length && json[position] == '.')
             {
                 position += 1;
-                ParseDigits(value);
+                ParseDigits(json);
             }
 
             //check for exponenets
-            if (position < value.Length && (value[position] == 'e' || value[position] == 'E'))
+            if (position < json.Length && (json[position] == 'e' || json[position] == 'E'))
             {
                 position += 1;
 
-                if (value[position] == '+' || value[position] == '-')
+                if (json[position] == '+' || json[position] == '-')
                 {
                     position += 1;
-                    ParseDigits(value);
+                    ParseDigits(json);
                 }
             }
 
-            decimal number = decimal.Parse(value.Substring(startPosition, position - startPosition), NumberStyles.Float, CultureInfo.CreateSpecificCulture("en-US"));
+            decimal number = decimal.Parse(json.Substring(startPosition, position - startPosition), NumberStyles.Float, CultureInfo.CreateSpecificCulture("en-US"));
 
             //puts us back on the last digit since numbers don't have quotes in them
             position--;
@@ -118,11 +117,11 @@ namespace JParser
         }
 
 
-        void ParseDigits(string value)
+        private void ParseDigits(string json)
         {
-            for (int i = position; i < value.Length; i++)
+            for (int i = position; i < json.Length; i++)
             {
-                if (char.IsDigit(value[i]))
+                if (char.IsDigit(json[i]))
                 {
                     position++;
                 }
@@ -133,13 +132,13 @@ namespace JParser
             }
         }
 
-        bool ParseTrue(string json)
+        private bool ParseTrue(string json)
         {
             string trueString = json.Substring(position, 4);
 
             if (trueString != "true")
             {
-                throw new Exception("Invalid Json");
+                throw new ArgumentException("Invalid Json");
             }
 
             position += 3;
@@ -147,13 +146,13 @@ namespace JParser
             return true;
         }
 
-        bool ParseFalse(string json)
+        private bool ParseFalse(string json)
         {
             string falseString = json.Substring(position, 5);
 
             if (falseString != "false")
             {
-                throw new Exception("Invalid Json");
+                throw new ArgumentException("Invalid Json");
             }
 
             position += 4;
@@ -161,21 +160,21 @@ namespace JParser
             return false;
         }
 
-        object? ParseNull(string json)
+        private object ParseNull(string json)
         {
             string nullString = json.Substring(position, 4);
 
             if (nullString != "null")
             {
-                throw new Exception("Invalid Json");
+                throw new ArgumentException("Invalid Json");
             }
 
             position += 3;
 
-            return null;
+            return nullString;
         }
 
-        JsonArray ParseJsonArray(string json, int level = 0)
+        private JsonArray ParseJsonArray(string json, int level = 0)
         {
 
             //starts us at the quote and not the curly brace
@@ -198,10 +197,10 @@ namespace JParser
                     jsonArray.Elements.Add(Parse(json, level));
                 }
             }
-            throw new Exception("Invalid Json");
+            throw new ArgumentException("Invalid Json");
         }
 
-        JsonObject ParseJsonObject(string json, int level = 0)
+        private JsonObject ParseJsonObject(string json, int level = 0)
         {
             //starts us at the quote and not the curly brace
             position++;
@@ -233,10 +232,10 @@ namespace JParser
                 }
                 else
                 {
-                    throw new Exception("Invalid Json");
+                    throw new ArgumentException("Invalid Json");
                 }
             }
-            throw new Exception("Invalid Json");
+            throw new ArgumentException("Invalid Json");
         }
     }
 }
