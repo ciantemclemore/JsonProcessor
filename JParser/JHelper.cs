@@ -7,6 +7,11 @@ namespace JParser
 {
     public static class JHelper
     {
+        /// <summary>
+        /// Removes all whitespace for a string. Helps with json parsing
+        /// </summary>
+        /// <param name="json"></param>
+        /// <returns></returns>
         public static string RemoveAllWhiteSpace(string json)
         {
             StringBuilder stringBuilder = new();
@@ -32,6 +37,11 @@ namespace JParser
             return stringBuilder.ToString();
         }
 
+        /// <summary>
+        /// Formats a json string for easier viewing
+        /// </summary>
+        /// <param name="json"></param>
+        /// <returns></returns>
         public static string Beautify(string json)
         {
             int level = 0;
@@ -75,6 +85,13 @@ namespace JParser
             return stringBuilder.ToString();
         }
 
+        /// <summary>
+        /// Allows user to add an additional json object a hierarchy for a more complex object
+        /// </summary>
+        /// <param name="originalJson"></param>
+        /// <param name="newJson"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public static object? AddToJson(object originalJson, object newJson, string query) 
         {
             //we need to be able to find the key and values of the new json to add to original
@@ -127,6 +144,12 @@ namespace JParser
             return null;
         }
 
+        /// <summary>
+        /// Allows the user to query a json object by key and return its value
+        /// </summary>
+        /// <param name="json"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
         public static IEnumerable<object> Query(object json, string query) 
         {
             if (json is JsonObject jsonObject)
@@ -141,6 +164,12 @@ namespace JParser
             return new List<object>();
         }
 
+        /// <summary>
+        /// Returns all the matching values in a query for a json array
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
         private static IEnumerable<object> Search(JsonArray array, string query) 
         {
             List<object> results = new List<object>();
@@ -160,6 +189,12 @@ namespace JParser
             return results;
         }
 
+        /// <summary>
+        /// Returns all the matching values in a query for a json object
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="query"></param>
+        /// <returns></returns>
         private static IEnumerable<object> Search(JsonObject obj, string query) 
         {
             List<object> results = new List<object>();
