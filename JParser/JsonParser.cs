@@ -14,6 +14,7 @@ namespace JParser
 
         public object? Parse(string json)
         {
+            position = 0;
             string cleanJson = JHelper.RemoveAllWhiteSpace(json);
             return Parse(cleanJson, 0);
         }

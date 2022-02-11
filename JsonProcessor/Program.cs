@@ -2,6 +2,7 @@
 using JParser;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace JsonProcessor
 {
@@ -12,40 +13,60 @@ namespace JsonProcessor
         [STAThread]
         private static void Main(string[] args)
         {
-            bool runProgram = true;
+            DemoJsonProcessor();
+        }
 
-            while (runProgram)
+        /// <summary>
+        /// A function that displays all functional requirements of the project.
+        /// </summary>
+        private static void DemoJsonProcessor() 
+        {
+            // Find the json file we will be using for parsing
+            string originalJsonString = File.ReadAllText("./json1.json");
+
+            // Now parse the json file and convert to a c# object
+            JsonParser jsonParser = new JsonParser();
+            object? originalJsonObject = jsonParser.Parse(originalJsonString);
+
+            // If we successfully parse the object, display it to the screen
+            if (originalJsonObject != null) 
             {
-                int userSelection = DisplayMenu();
-
-                switch (userSelection)
-                {
-                    case 1:
-                        UploadJson();
-                        break;
-                    case 2:
-                        DisplayJson();
-                        break;
-                    case 3:
-                        UpdateJson();
-                        break;
-                    case 4:
-                        QueryAJson();
-                        break;
-                    case 5:
-                        runProgram = false;
-                        break;
-                    default:
-                        Console.WriteLine("Invalid selection. Try Again:");
-                        break;
-                }
-
+                Console.WriteLine("Json was successfully parsed");
                 Console.WriteLine();
+                Console.WriteLine("Displaying parsed json:");
+                DisplayContent(originalJsonObject);
+
+                // Now we can show the user we can update the json by adding addition json to the current json object
+                string newJsonString = File.ReadAllText("./json6.json");
+
+                // Parse the new json
+                object? newJsonObject = jsonParser.Parse(newJsonString);
+
+                
+                // If the object is parsed successfully, we can add the new object to the original object to make a more complex hierarchy
+                if (newJsonObject != null) 
+                {
+                    object? updatedJson = JHelper.AddToJson(originalJsonObject, newJsonObject, "GlossList");
+
+                    // Now display the updateJson if parsed successfully
+                    if (updatedJson != null) 
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Added new json object using the 'GlossList' key from original json");
+                        DisplayContent(updatedJson);
+
+                        // Now we can query the updated json and return the value from the given key
+                        Console.WriteLine();
+                        Console.WriteLine("Querying a json using 'GlossEntry' key to return its value");
+                        IEnumerable<object>? queryResults = JHelper.Query(updatedJson, "GlossEntry");
+                        DisplayContent(queryResults);
+                    }
+                }
             }
         }
 
         /// <summary>
-        /// Displays the main window options for the program
+        /// This function can allow for user input if the project needs a GUI
         /// </summary>
         /// <returns></returns>
         private static int DisplayMenu()
